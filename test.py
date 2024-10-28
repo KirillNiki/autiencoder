@@ -15,6 +15,8 @@ DATA_PATH = '/home/kirill/develop/python/test/dtd/images'
 CSV_DATSET_PATH = 'dataset.csv'
 MAX_SHAPE = 640
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 class CNNConfigInterface():
   def __init__(self, 
@@ -113,10 +115,7 @@ def generate_csv():
   csv_file.close()
 
 
-if __name__ == '__main__':
-  dataset = CustomDataset()
-  data_loader = DataLoader(dataset=dataset, batch_size=16, shuffle=True)
-  
+def create_model():
   model = AutoEncoder(
     encoder_params=[
       CNNConfigInterface(3, 32, 7),
@@ -131,17 +130,28 @@ if __name__ == '__main__':
       CNNConfigInterface(32, 3, 7),
     ]
   )
+  model.to(device=device)
+  optimizer = torch.optim.Adam(model.parameters())
+  
   input_size = (3, MAX_SHAPE, MAX_SHAPE)
   summary(model=model, input_size=input_size)
+  return model, optimizer
+
+
+if __name__ == '__main__':
+  generate_csv()
   
-  optimizer = torch.optim.Adam(model.parameters())
+  model, optimizer = create_model()
+  dataset = CustomDataset()
+  data_loader = DataLoader(dataset=dataset, batch_size=16, shuffle=True)
+  
   loss_fn = torch.nn.MSELoss()
-  
   for epoch in range(1000):
     losses = []
     index = 0
     
     for data in iter(data_loader):
+      data.to(device=device)
       prediction = model(data)
       loss = loss_fn(prediction, data)
       losses.append(loss)
@@ -149,7 +159,6 @@ if __name__ == '__main__':
       loss.backward()
       optimizer.step()
       optimizer.zero_grad()
-      
       index += 1
     
     print(sum(losses) / len(losses))
