@@ -9,11 +9,15 @@ import torch
 from torchsummary import summary
 from torch.utils.data import DataLoader, Dataset
 import numpy as np
+import random
 
 
-DATA_PATH = '/home/kirill/develop/python/test/dtd/images'
-CSV_DATSET_PATH = 'dataset.csv'
+DATA_PATH = './dtd/images'
+CSV_DATSET_PATH = './datasets_csvs/dataset.csv'
+CSV_TRAINDATSET_PATH = './datasets_csvs/train_dataset.csv'
+CSV_TESTDATSET_PATH = './datasets_csvs/test_dataset.csv'
 MAX_SHAPE = 640
+BATCH_SIZE = 16
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -77,9 +81,9 @@ class AutoEncoder(torch.nn.Module):
 
 
 class CustomDataset(Dataset):
-  def __init__(self):
+  def __init__(self, data_path=CSV_TRAINDATSET_PATH):
     super().__init__()
-    self.csv_dataset = pd.read_csv(CSV_DATSET_PATH)
+    self.csv_dataset = pd.read_csv(data_path)
     self.convert_totensor = T.ToTensor()
   
   def __len__(self):
@@ -100,7 +104,7 @@ class CustomDataset(Dataset):
     return tensor
 
 
-def generate_csv():
+def generate_csv(test_part=0.2):
   csv_file = open(CSV_DATSET_PATH, 'w', newline='')
   writer = csv.writer(csv_file)
   
@@ -110,9 +114,27 @@ def generate_csv():
     
     file_names = os.listdir(dir_path)
     for file_name in file_names:
-      writer.writerow([join(dir_path, file_name)])
-      
+      if file_name.endswith('.jpg'):
+        writer.writerow([join(dir_path, file_name)])
   csv_file.close()
+  
+  csv_dataset = pd.read_csv(CSV_DATSET_PATH)
+  train_csv_file = open(CSV_TRAINDATSET_PATH, 'w', newline='')
+  train_writer = csv.writer(train_csv_file)
+  test_csv_file = open(CSV_TESTDATSET_PATH, 'w', newline='')
+  test_writer = csv.writer(test_csv_file)
+  
+  test_inds = np.random.choice(range(0, len(csv_dataset)), (int)(len(csv_dataset)*test_part))
+  for test_ind in test_inds:
+    img_path = csv_dataset.iloc[test_ind, 0]
+    test_writer.writerow([img_path])
+  test_csv_file.close()
+
+  train_inds = np.delete(np.array(range(0, len(csv_dataset))), test_inds)
+  for train_ind in train_inds:
+    img_path = csv_dataset.iloc[train_ind, 0]
+    train_writer.writerow([img_path])
+  train_csv_file.close()
 
 
 def create_model():
@@ -139,27 +161,39 @@ def create_model():
 
 
 if __name__ == '__main__':
-  generate_csv()
-  
   model, optimizer = create_model()
-  dataset = CustomDataset()
-  data_loader = DataLoader(dataset=dataset, batch_size=16, shuffle=True)
+  train_dataset = CustomDataset(CSV_TRAINDATSET_PATH)
+  test_dataset = CustomDataset(CSV_TESTDATSET_PATH)
+  
+  train_data_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+  test_data_loader = DataLoader(dataset=test_dataset, batch_size=BATCH_SIZE, shuffle=True)
+  
   
   loss_fn = torch.nn.MSELoss()
   for epoch in range(1000):
-    losses = []
     index = 0
     
-    for data in iter(data_loader):
-      data.to(device=device)
-      prediction = model(data)
-      loss = loss_fn(prediction, data)
-      losses.append(loss)
+    for train_data in iter(train_data_loader):
+      train_data = train_data.to(device=device)
+      prediction = model(train_data)
+      loss = loss_fn(prediction, train_data)
       
       loss.backward()
       optimizer.step()
       optimizer.zero_grad()
+      
+      del train_data
       index += 1
     
+    losses = []
+    with torch.no_grad():
+      for test_data in iter(test_data_loader):
+        test_data = test_data.to(device=device)
+        prediction = model(test_data)
+        loss = loss_fn(prediction, test_data)
+        
+        losses.append(loss)
+        del test_data
     print(sum(losses) / len(losses))
+    
 torch.save(model, 'model')

@@ -33,7 +33,7 @@ sqrt_alphas_cumprod = torch.sqrt(alphas_cumprod)
 sqrt_one_minus_alphas_cumprod = torch.sqrt(1. - alphas_cumprod)
 
 
-with Image.open('./image0.jpg') as im:
+with Image.open('./image.jpg') as im:
     t = torch.tensor(np.array(im))
     test = t / 255
 
