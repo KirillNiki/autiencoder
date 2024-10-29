@@ -102,6 +102,11 @@ class CustomDataset(Dataset):
           (second_dim_pad//2, second_dim_pad - second_dim_pad//2, first_dim_pad//2, first_dim_pad - first_dim_pad//2))
     
     return tensor
+  
+
+def se_loss(output, target):
+  loss = torch.sum((output - target)**2)
+  return loss
 
 
 def generate_csv(test_part=0.2):
@@ -169,7 +174,7 @@ if __name__ == '__main__':
   test_data_loader = DataLoader(dataset=test_dataset, batch_size=BATCH_SIZE, shuffle=True)
   
   
-  loss_fn = torch.nn.MSELoss()
+  loss_fn = se_loss
   for epoch in range(1000):
     index = 0
     
