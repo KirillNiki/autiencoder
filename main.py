@@ -25,7 +25,7 @@ def create_model():
       CNNConfigInterface(256, 3),
     ])
   model.to(device=device)
-  optimizer = torch.optim.Adam(model.parameters())
+  optimizer = torch.optim.Adam(params=model.parameters(), lr=LEARNING_RATE)
   
   input_size = (3, MAX_SHAPE, MAX_SHAPE)
   summary(model=model, input_size=input_size)
