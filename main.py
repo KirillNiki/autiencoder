@@ -40,7 +40,7 @@ if __name__ == '__main__':
   train_data_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True)
   test_data_loader = DataLoader(dataset=test_dataset, batch_size=BATCH_SIZE, shuffle=True)
   
-  loss_fn = se_loss
+  loss_fn = torch.nn.MSELoss()
   for epoch in range(1000):
     index = 0
     
@@ -52,8 +52,6 @@ if __name__ == '__main__':
       loss.backward()
       optimizer.step()
       optimizer.zero_grad()
-      
-      del train_data
       index += 1
     
     losses = []
@@ -64,7 +62,6 @@ if __name__ == '__main__':
         loss = loss_fn(prediction, test_data)
         
         losses.append(loss)
-        del test_data
-    print(sum(losses) / len(losses))
+    print(epoch, (sum(losses) / len(losses)).item())
     
 torch.save(model, 'model')
