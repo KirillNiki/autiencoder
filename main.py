@@ -53,6 +53,7 @@ if __name__ == '__main__':
       optimizer.step()
       optimizer.zero_grad()
       index += 1
+      del train_data
     
     losses = []
     with torch.no_grad():
@@ -62,6 +63,7 @@ if __name__ == '__main__':
         loss = loss_fn(prediction, test_data)
         
         losses.append(loss)
+        del test_data
     print(epoch, (sum(losses) / len(losses)).item())
     
 torch.save(model, 'model')

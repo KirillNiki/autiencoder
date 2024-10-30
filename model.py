@@ -42,7 +42,7 @@ class AutoEncoder(torch.nn.Module):
       ) for i in range(len(params)-1, -1, -1)
     ])
     self.maxpol = torch.nn.MaxPool2d(kernel_size=2, stride=2)
-    self.upsemlp = torch.nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+    self.upsemlp = torch.nn.Upsample(scale_factor=2)
     self.relu = torch.nn.ReLU()
     self.sigmoid = torch.nn.Sigmoid()
     
