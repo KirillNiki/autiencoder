@@ -5,3 +5,4 @@ CSV_TESTDATSET_PATH = './datasets_csvs/test_dataset.csv'
 MAX_SHAPE = 640
 BATCH_SIZE = 16
 LEARNING_RATE = 1e-1
+EPOCHS = 100

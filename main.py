@@ -1,4 +1,7 @@
+import sys
 import torch
+from PIL import Image
+import torchvision.transforms as T
 from torch.utils.data import DataLoader
 from torchsummary import summary
 
@@ -18,11 +21,13 @@ def se_loss(output, target):
 def create_model():
   model = AutoEncoder(
     params=[
-      CNNConfigInterface(16, 7),
-      CNNConfigInterface(32, 6),
-      CNNConfigInterface(64, 5),
-      CNNConfigInterface(128, 3),
-      CNNConfigInterface(256, 3),
+      CNNConfigInterface(out_channels=16, kernel_size=7),
+      CNNConfigInterface(out_channels=32, kernel_size=6),
+      CNNConfigInterface(out_channels=64, kernel_size=5),
+      CNNConfigInterface(out_channels=64, kernel_size=5),
+      CNNConfigInterface(out_channels=128, kernel_size=3),
+      CNNConfigInterface(out_channels=128, kernel_size=2),
+      CNNConfigInterface(out_channels=256, kernel_size=2),
     ])
   model.to(device=device)
   optimizer = torch.optim.Adam(params=model.parameters(), lr=LEARNING_RATE)
@@ -40,30 +45,49 @@ if __name__ == '__main__':
   train_data_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True)
   test_data_loader = DataLoader(dataset=test_dataset, batch_size=BATCH_SIZE, shuffle=True)
   
-  loss_fn = torch.nn.MSELoss()
-  for epoch in range(1000):
+  
+  test = next(iter(train_data_loader))
+  
+  loss_fn = torch.nn.CrossEntropyLoss()
+  for epoch in range(EPOCHS):
     index = 0
+    losses = []
     
-    for train_data in iter(train_data_loader):
+    for train_data in [test]:
       train_data = train_data.to(device=device)
+      optimizer.zero_grad()
+      
       prediction = model(train_data)
       loss = loss_fn(prediction, train_data)
-      
+      losses.append(loss)
       loss.backward()
+      
       optimizer.step()
-      optimizer.zero_grad()
       index += 1
-      del train_data
     
-    losses = []
-    with torch.no_grad():
-      for test_data in iter(test_data_loader):
-        test_data = test_data.to(device=device)
-        prediction = model(test_data)
-        loss = loss_fn(prediction, test_data)
-        
-        losses.append(loss)
-        del test_data
+    # losses = []
+    # with torch.no_grad():
+    #   for test_data in [test]:
+    #     test_data = test_data.to(device=device)
+    #     prediction = model(test_data)
+    #     loss = loss_fn(prediction, test_data)
+    
+    #     losses.append(loss)
+    #     del test_data
     print(epoch, (sum(losses) / len(losses)).item())
-    
-torch.save(model, 'model')
+    sys.stdout.flush()
+  torch.save(model, 'model')
+
+
+  transform = T.ToPILImage()
+  test = test.to(device=device)
+  test = test[0][None, :]
+  result = model(test)
+  
+  test = test.to(device='cpu')
+  image0 = transform(test[0] * 255)
+  image0.save('image0.jpg')
+  
+  result = result.to(device='cpu')
+  image1 = transform(result[0] * 255)
+  image1.save('image1.jpg')
