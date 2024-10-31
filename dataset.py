@@ -40,14 +40,10 @@ def generate_csv(test_part=0.2):
   csv_file = open(CSV_DATSET_PATH, 'w', newline='')
   writer = csv.writer(csv_file)
   
-  dir_names = os.listdir(DATA_PATH)
-  for dir_name in dir_names:
-    dir_path = join(DATA_PATH, dir_name)
-    
-    file_names = os.listdir(dir_path)
-    for file_name in file_names:
-      if file_name.endswith('.jpg'):
-        writer.writerow([join(dir_path, file_name)])
+  file_names = os.listdir(DATA_PATH)    
+  for file_name in file_names:
+    if file_name.endswith('.jpg'):
+      writer.writerow([join(DATA_PATH, file_name)])
   csv_file.close()
   
   csv_dataset = pd.read_csv(CSV_DATSET_PATH)
@@ -67,3 +63,25 @@ def generate_csv(test_part=0.2):
     img_path = csv_dataset.iloc[train_ind, 0]
     train_writer.writerow([img_path])
   train_csv_file.close()
+  
+  
+def delete_bad_images():
+  to_tensor = T.ToTensor()
+  dir_names = os.listdir(SOURCE_DATA_PATH)
+  
+  for dir_name in dir_names:
+    dir_path = join(SOURCE_DATA_PATH, dir_name)
+    file_names = os.listdir(dir_path)
+    
+    for file_name in file_names:
+      if file_name.endswith('.jpg'):
+        image = Image.open(join(dir_path, file_name))
+        tensor = to_tensor(image)
+        
+        if tensor.shape[1] > MAX_SHAPE or tensor.shape[2] > MAX_SHAPE:
+          continue
+        
+        image.save(join(DATA_PATH, file_name))
+
+if __name__ == '__main__':
+  generate_csv()
